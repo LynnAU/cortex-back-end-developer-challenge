@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { AppController } from './app.controller';
@@ -7,8 +8,16 @@ import { CharacterModule } from './character/character.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/dndbeyond-cortex', {
-      useFindAndModify: false
+    ConfigModule.forRoot({
+      envFilePath: ['.env.development.local', '.env']
+    }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('DATABASE_HOST'),
+        useFindAndModify: false
+      }),
+      inject: [ConfigService],
     }),
     CharacterModule
   ],
