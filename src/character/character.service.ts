@@ -47,6 +47,9 @@ export class CharacterService {
         break;
     }
 
+    // factor in the constitution modifer of the player
+    hp += Math.floor((payload.stats.constitution - 10) / 2);
+
     payload.hitPoints = hp;
     return await this.characterModel.create(payload);
   }
