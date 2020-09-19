@@ -1,10 +1,11 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { HPGenerationMethod } from './dto/character-class.dto';
+import { CharacterDamageDto } from './dto/character-damage.dto';
 
 import { CharacterDto } from './dto/character.dto';
 import { Character } from './schema/character.schema';
+import { HPGenerationMethod } from './types/hp-gen-method.type';
 
 @Injectable()
 export class CharacterService {
@@ -41,6 +42,8 @@ export class CharacterService {
         break;
 
       case 'roll':
+        // like the name suggests, roll/generate a random number between the
+        // max face value of the hit die and 1
         hp += classes.map(cls => {
           return Math.floor(Math.random() * (cls.hitDiceValue - 1 + 1) + 1);
         }).reduce((a, b) => a + b, 0);
@@ -52,5 +55,47 @@ export class CharacterService {
 
     payload.hitPoints = hp;
     return await this.characterModel.create(payload);
+  }
+
+  async damage(
+    name: string,
+    payload: CharacterDamageDto[] | CharacterDamageDto): Promise<CharacterDto | HttpException> {
+    // check if the character exists
+    const char = await this.findOneByName(name);
+    if (char === null) {
+      return new HttpException('no character was found with this name', 400);
+    }
+
+    const immunity = char.defenses.filter(def => def.defense === 'immunity')
+      .map(def => def.type);
+    const resistances = char.defenses.filter(def => def.defense === 'resistance')
+      .map(def => def.type);
+
+    const damages: CharacterDamageDto[] = [].concat(payload);
+    console.log('d', damages);
+    damages.forEach(dmg => {
+      // check if the player can resist this type of damage
+      // or if they're immune to it
+      if (immunity.includes(dmg.type)) {
+        return;
+      }
+
+      let damageModifier = 1;
+      // set the modifier to half if the player is resistant to the damage type
+      if (resistances.includes(dmg.type)) {
+        damageModifier = 0.5;
+      }
+
+      // apply the damage to the health
+      char.hitPoints -= dmg.amount * damageModifier;
+    });
+
+    // catch or negative hp
+    if (char.hitPoints < 0) {
+      char.hitPoints = 0;
+    }
+
+    // update the db
+    return await this.characterModel.findOneAndUpdate({ name: char.name }, char, { new: true });
   }
 }

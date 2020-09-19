@@ -7,7 +7,9 @@ import { CharacterModule } from './character/character.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/dndbeyond-cortex'),
+    MongooseModule.forRoot('mongodb://localhost/dndbeyond-cortex', {
+      useFindAndModify: false
+    }),
     CharacterModule
   ],
   controllers: [AppController],

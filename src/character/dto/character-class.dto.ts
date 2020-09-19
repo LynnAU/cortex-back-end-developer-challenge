@@ -23,5 +23,3 @@ export class CharacterClassDto {
   @Max(20)
   classLevel: number;
 }
-
-export type HPGenerationMethod = 'roll' | 'average';

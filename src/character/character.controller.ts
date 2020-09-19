@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 
 import { CharacterService } from './character.service';
-import { HPGenerationMethod } from './dto/character-class.dto';
+import { CharacterDamageDto } from './dto/character-damage.dto';
 import { CharacterDto } from './dto/character.dto';
+import { HPGenerationMethod } from './types/hp-gen-method.type';
 
 @Controller('character')
 export class CharacterController {
@@ -22,8 +23,13 @@ export class CharacterController {
   create(
     @Query('hpGenMethod') hpGenMethod: HPGenerationMethod = 'average',
     @Body() payload: CharacterDto): Promise<CharacterDto | HttpException> {
-      console.log('hpGenMethod', hpGenMethod);
-      // return new Promise(resolve => resolve(payload));
     return this.characterService.create(payload, hpGenMethod);
+  }
+
+  @Post('/:name/damage')
+  damage(
+    @Param('name') name: string,
+    @Body() payload: CharacterDamageDto[]): Promise<CharacterDto | HttpException> {
+    return this.characterService.damage(name, payload);
   }
 }
