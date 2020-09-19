@@ -1,6 +1,4 @@
-import {
-  IsString
-} from 'class-validator';
+import { IsString, ValidateNested } from 'class-validator';
 
 export class CharacterItemModiferDto {
   @IsString()
@@ -17,5 +15,6 @@ export class CharacterItemDto {
   @IsString()
   name: string;
 
+  @ValidateNested()
   modifer: CharacterItemModiferDto;
 }

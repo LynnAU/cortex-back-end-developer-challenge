@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsPositive,
+  IsIn,
   Min,
   Max
 } from 'class-validator';
@@ -15,6 +16,7 @@ export class CharacterClassDto {
   @IsNumber()
   @IsNotEmpty()
   @IsPositive()
+  @IsIn([2, 4, 6, 8, 10, 12, 20, 100])
   hitDiceValue: number;
 
   @IsNumber()
