@@ -13,6 +13,12 @@ export class Character extends Document {
   hitPoints?: number;
 
   @Prop()
+  readonly maxHitPoints?: number;
+
+  @Prop()
+  temporaryHitPoints?: number;
+
+  @Prop()
   classes: any[];
 
   @Prop()

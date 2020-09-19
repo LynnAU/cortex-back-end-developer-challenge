@@ -7,6 +7,7 @@ import {
 
 import { CharacterService } from './character.service';
 import { CharacterDamageDto } from './dto/character-damage.dto';
+import { CharacterHealDto } from './dto/character-heal.dto';
 import { CharacterDto } from './dto/character.dto';
 import { HPGenerationMethod } from './types/hp-gen-method.type';
 
@@ -31,5 +32,12 @@ export class CharacterController {
     @Param('name') name: string,
     @Body() payload: CharacterDamageDto[]): Promise<CharacterDto | HttpException> {
     return this.characterService.damage(name, payload);
+  }
+
+  @Post('/:name/heal')
+  heal(
+    @Param('name') name: string,
+    @Body() payload: CharacterHealDto): Promise<CharacterDto | HttpException> {
+    return this.characterService.heal(name, payload);
   }
 }

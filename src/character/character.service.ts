@@ -2,6 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CharacterDamageDto } from './dto/character-damage.dto';
+import { CharacterHealDto } from './dto/character-heal.dto';
 
 import { CharacterDto } from './dto/character.dto';
 import { Character } from './schema/character.schema';
@@ -14,7 +15,7 @@ export class CharacterService {
   ) {}
 
   async findOneByName(name: string) : Promise<CharacterDto> {
-    return await this.characterModel.findOne({ name });
+    return this.characterModel.findOne({ name });
   }
 
   async create(payload: CharacterDto, hpGenMethod: HPGenerationMethod): Promise<CharacterDto | HttpException> {
@@ -23,6 +24,10 @@ export class CharacterService {
     if (char !== null) {
       return new HttpException('a character already exists with the same name', 400);
     }
+
+    // delete any representation of _id
+    // so the db doesn't error out
+    delete payload['_id'];
 
     // calculate the character's hitpoints using our method passed in
     const { classes } = payload;
@@ -54,12 +59,11 @@ export class CharacterService {
     hp += Math.floor((payload.stats.constitution - 10) / 2);
 
     payload.hitPoints = hp;
-    return await this.characterModel.create(payload);
+    (payload.maxHitPoints as Character['maxHitPoints']) = hp;
+    return this.characterModel.create(payload);
   }
 
-  async damage(
-    name: string,
-    payload: CharacterDamageDto[] | CharacterDamageDto): Promise<CharacterDto | HttpException> {
+  async damage(name: string, payload: CharacterDamageDto[] | CharacterDamageDto): Promise<CharacterDto | HttpException> {
     // check if the character exists
     const char = await this.findOneByName(name);
     if (char === null) {
@@ -72,7 +76,6 @@ export class CharacterService {
       .map(def => def.type);
 
     const damages: CharacterDamageDto[] = [].concat(payload);
-    console.log('d', damages);
     damages.forEach(dmg => {
       // check if the player can resist this type of damage
       // or if they're immune to it
@@ -87,15 +90,46 @@ export class CharacterService {
       }
 
       // apply the damage to the health
-      char.hitPoints -= dmg.amount * damageModifier;
+      // but only if we have no temporary hitpoints remaining
+      let amount = dmg.amount * damageModifier;
+      if (char.temporaryHitPoints > 0) {
+        amount -= char.temporaryHitPoints;
+      }
+
+      // there is no damage left to use
+      if (amount <= 0) {
+        char.temporaryHitPoints = -amount;
+        return;
+      }
+
+      char.temporaryHitPoints = 0;
+      char.hitPoints -= amount;
     });
 
-    // catch or negative hp
+    // catch for negative hp
     if (char.hitPoints < 0) {
       char.hitPoints = 0;
     }
 
     // update the db
-    return await this.characterModel.findOneAndUpdate({ name: char.name }, char, { new: true });
+    return this.characterModel.findOneAndUpdate({ name: char.name }, char, { new: true });
+  }
+
+  async heal(name: string, payload: CharacterHealDto): Promise<CharacterDto | HttpException> {
+    // check if the character exists
+    const char = await this.findOneByName(name);
+    if (char === null) {
+      return new HttpException('no character was found with this name', 400);
+    }
+
+    // add hp to the player, temporary or permanent
+    char.hitPoints += payload.permanentHitPoints;
+    if (char.hitPoints > char.maxHitPoints) {
+      char.hitPoints = char.maxHitPoints;
+    }
+
+    char.temporaryHitPoints = payload.temporaryHitPoints > (char.temporaryHitPoints || 0) ?payload.temporaryHitPoints : char.temporaryHitPoints;
+
+    return this.characterModel.findOneAndUpdate({ name }, char, { new: true }); 
   }
 }

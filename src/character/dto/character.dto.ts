@@ -8,6 +8,7 @@ import {
   MinLength,
   Min,
   Max,
+  ValidateNested
 } from 'class-validator';
 
 import { CharacterClassDto } from './character-class.dto';
@@ -31,14 +32,28 @@ export class CharacterDto {
   @IsOptional()
   hitPoints?: number;
 
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  readonly maxHitPoints?: number;
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  temporaryHitPoints?: number;
+
   @IsArray()
+  @ValidateNested()
   classes: CharacterClassDto[];
 
+  @ValidateNested()
   stats: CharacterStatsDto;
 
   @IsArray()
+  @ValidateNested()
   items: CharacterItemDto[];
 
   @IsArray()
+  @ValidateNested()
   defenses: CharacterDefenseDto[];
 }
